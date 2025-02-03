@@ -122,9 +122,13 @@ int main(int argc, char *argv[]) {
 
     auto res_data{serialize<int32_t>(correlation_id)};
 
+    auto error_code{serialize<int16_t>(35)};
+
     std::vector<uint8_t> response(res_size);
 
     response.insert(response.end(), res_data.begin(), res_data.end());
+
+    response.insert(response.end(), error_code.begin(), error_code.end());
 
     ssize_t bytesSent = send(client_fd, response.data(), response.size(), 0);
     if (bytesSent == -1) {
