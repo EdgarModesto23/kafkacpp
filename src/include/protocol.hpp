@@ -4,25 +4,40 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <memory>
-#include <stdexcept>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 // Might need to use function to "flat" objects
 template <typename T> auto serialize(const T &val) noexcept {
   std::vector<uint8_t> buff(sizeof(T));
   std::memcpy(buff.data(), &val, sizeof(T));
+
+  for (auto i = 0; i < sizeof(T) / 2; ++i) {
+    std::swap(buff[i], buff[sizeof(T) - 1 - i]);
+  }
   return buff;
 }
 
 // Might need to use function to translate from struct to object
-template <typename T> auto de_serialize(const std::vector<std::byte> &data) {
-  if (data.size() != sizeof(T)) {
-    throw std::invalid_argument(
-        "Byte sequence size does not match the object size.");
+template <typename T>
+auto de_serialize(const std::vector<uint8_t> &data, int offset, int length) {
+  static_assert(std::is_trivially_copyable_v<T>,
+                "T must be trivially copyable");
+
+  if (offset + length > data.size()) {
+    throw std::out_of_range("Read range exceeds the size of the vector");
   }
-  T obj;
-  std::memcpy(&obj, data.data(), sizeof(T));
+
+  // if (length != sizeof(T)) {
+  //   throw std::invalid_argument(
+  //       "Length must be the same as the size of the type T");
+  // }
+
+  T obj{};
+  for (auto i = 0; i < sizeof(T); ++i) {
+    reinterpret_cast<uint8_t *>(&obj)[i] = data[offset + (sizeof(T) - 1 - i)];
+  }
   return obj;
 };
 

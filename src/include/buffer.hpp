@@ -7,6 +7,7 @@
 
 class R_header {
 private:
+  size_t length;
   int16_t api_key;
   int16_t api_version;
   int32_t correlation_id;
@@ -14,6 +15,8 @@ private:
   Compact_arr<size_t> tagged_fields;
 
 public:
+  size_t get_length() { return length; };
+
   void setApiKey(int16_t key) { api_key = key; }
 
   int16_t getApiKey() const { return api_key; }
@@ -32,4 +35,4 @@ public:
         tagged_fields(tagged_fields){};
 };
 
-R_header parse_headers(std::vector<std::byte> data, int);
+R_header parse_headers(std::vector<std::byte> data);

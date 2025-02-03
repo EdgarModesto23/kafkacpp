@@ -4,7 +4,7 @@
 
 std::unique_ptr<Abstract_Api_Key> api_key_factory(const int key,
                                                   int client_fd) noexcept {
-  return std::make_unique<Api_version>(Api_version(client_fd));
+  return std::make_unique<Abstract_Api_Key>(Api_version(client_fd));
 };
 
 Api_version::Api_version(int client_fd) : Abstract_Api_Key(client_fd){};
