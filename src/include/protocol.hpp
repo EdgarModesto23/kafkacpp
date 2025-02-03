@@ -58,7 +58,4 @@ public:
         body(std::move(request.body)) {}
 };
 
-template <typename T>
-void execute_key(const T &api_key, const Request &request) {
-  api_key.execute(request);
-};
+template <typename T> void execute_key(const T &api_key) { api_key.execute(); };

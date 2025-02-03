@@ -122,9 +122,9 @@ int main(int argc, char *argv[]) {
 
     auto res_data{serialize<int32_t>(correlation_id)};
 
-    auto error_code{serialize<int16_t>(35)};
+    auto error_code{serialize<int16_t>(0)};
 
-    std::vector<uint8_t> response(res_size);
+    std::vector<uint8_t> response;
 
     response.insert(response.end(), res_data.begin(), res_data.end());
 
