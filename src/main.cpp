@@ -3,7 +3,6 @@
 #include <cstring>
 #include <iostream>
 #include <netdb.h>
-#include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -57,25 +56,27 @@ int main(int argc, char *argv[]) {
   // when running tests.
   std::cerr << "Logs from your program will appear here!\n";
 
-  int client_fd =
-      accept(server_fd, reinterpret_cast<struct sockaddr *>(&client_addr),
-             &client_addr_len);
-  char buffer[1024];
-  std::cout << "Client connected\n";
-  recv(client_fd, buffer, sizeof(buffer), 0);
+  while (true) {
+    int client_fd =
+        accept(server_fd, reinterpret_cast<struct sockaddr *>(&client_addr),
+               &client_addr_len);
+    char buffer[1024];
+    std::cout << "Client connected\n";
+    recv(client_fd, buffer, sizeof(buffer), 0);
 
-  const char data[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x00};
-  ssize_t bytesSent = send(client_fd, data, sizeof(data), 0);
-  if (bytesSent == -1) {
-    std::cerr << "Send failed!" << std::endl;
+    const char data[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x00};
+    ssize_t bytesSent = send(client_fd, data, sizeof(data), 0);
+    if (bytesSent == -1) {
+      std::cerr << "Send failed!" << std::endl;
+      close(client_fd);
+      close(server_fd);
+      return 1;
+    }
+
+    std::cout << "Sent " << bytesSent << " bytes." << std::endl;
+
     close(client_fd);
-    close(server_fd);
-    return 1;
-  }
-
-  std::cout << "Sent " << bytesSent << " bytes." << std::endl;
-
-  close(client_fd);
+  };
 
   close(server_fd);
   return 0;
