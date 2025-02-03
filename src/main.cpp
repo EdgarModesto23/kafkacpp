@@ -1,11 +1,50 @@
+#include "include/protocol.hpp"
 #include <arpa/inet.h>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <netdb.h>
+#include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <unordered_map>
+#include <vector>
+
+ssize_t safe_recv(int socket, std::vector<uint8_t> &buffer) {
+  size_t offset = 0;
+  size_t buffer_size = buffer.size();
+
+  while (true) {
+    ssize_t bytes_received =
+        recv(socket, buffer.data() + offset, buffer_size - offset, 0);
+
+    if (bytes_received == -1) {
+      // Handle error
+      perror("recv failed");
+      return -1;
+    } else if (bytes_received == 0) {
+      // Connection closed
+      break;
+    }
+
+    offset += bytes_received;
+
+    // If we've filled the buffer, grow it
+    if (offset == buffer_size) {
+      buffer_size *= 2; // Double the size (could be adjusted)
+      buffer.resize(buffer_size);
+    }
+    // If the received data is less than the current buffer size, we can stop
+    else if (bytes_received < buffer_size) {
+      buffer.resize(offset); // Trim the buffer to the exact size
+      break;
+    }
+  }
+
+  return offset; // Return the number of bytes actually received
+}
 
 int main(int argc, char *argv[]) {
   // Disable output buffering
@@ -60,12 +99,34 @@ int main(int argc, char *argv[]) {
     int client_fd =
         accept(server_fd, reinterpret_cast<struct sockaddr *>(&client_addr),
                &client_addr_len);
-    char buffer[1024];
+    std::vector<uint8_t> buffer(1024);
     std::cout << "Client connected\n";
-    recv(client_fd, buffer, sizeof(buffer), 0);
+    auto bytes_read{safe_recv(client_fd, buffer)};
+    buffer.resize(bytes_read);
 
-    const char data[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x00};
-    ssize_t bytesSent = send(client_fd, data, sizeof(data), 0);
+    std::cout << "size of vector: " << buffer.size() << '\n';
+
+    int32_t size{de_serialize<int32_t>(buffer, 0, 3)};
+
+    auto request_api_key{de_serialize<int16_t>(buffer, 4, 2)};
+
+    auto request_api_version{de_serialize<uint16_t>(buffer, 6, 2)};
+
+    auto correlation_id{de_serialize<uint32_t>(buffer, 8, 4)};
+
+    std::cout << size << '\n';
+
+    std::cout << correlation_id << '\n';
+
+    auto res_size{serialize<int32_t>(4)};
+
+    auto res_data{serialize<int32_t>(correlation_id)};
+
+    std::vector<uint8_t> response(res_size);
+
+    response.insert(response.end(), res_data.begin(), res_data.end());
+
+    ssize_t bytesSent = send(client_fd, response.data(), response.size(), 0);
     if (bytesSent == -1) {
       std::cerr << "Send failed!" << std::endl;
       close(client_fd);
