@@ -29,11 +29,6 @@ auto de_serialize(const std::vector<uint8_t> &data, int offset, int length) {
     throw std::out_of_range("Read range exceeds the size of the vector");
   }
 
-  // if (length != sizeof(T)) {
-  //   throw std::invalid_argument(
-  //       "Length must be the same as the size of the type T");
-  // }
-
   T obj{};
   for (auto i = 0; i < sizeof(T); ++i) {
     reinterpret_cast<uint8_t *>(&obj)[i] = data[offset + (sizeof(T) - 1 - i)];
@@ -58,4 +53,4 @@ public:
         body(std::move(request.body)) {}
 };
 
-template <typename T> void execute_key(const T &api_key) { api_key.execute(); };
+template <typename T> void execute_key(T *api_key) { api_key->execute(); };

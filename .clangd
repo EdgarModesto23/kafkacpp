@@ -1,5 +1,4 @@
 CompileFlags:
-  CompilationDatabase: ./build/compile_commands.json
   Add: [-std=c++23]
 
 

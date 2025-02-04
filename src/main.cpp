@@ -1,15 +1,17 @@
+#include "include/api_keys.hpp"
 #include "include/protocol.hpp"
+#include "include/utils.hpp"
 #include <arpa/inet.h>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <format>
 #include <iostream>
+#include <memory>
 #include <netdb.h>
-#include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <unordered_map>
 #include <vector>
 
 ssize_t safe_recv(int socket, std::vector<uint8_t> &buffer) {
@@ -104,43 +106,11 @@ int main(int argc, char *argv[]) {
     auto bytes_read{safe_recv(client_fd, buffer)};
     buffer.resize(bytes_read);
 
-    std::cout << "size of vector: " << buffer.size() << '\n';
+    auto buff_ptr = std::make_unique<std::vector<uint8_t>>(buffer);
 
-    int32_t size{de_serialize<int32_t>(buffer, 0, 3)};
-
-    auto request_api_key{de_serialize<int16_t>(buffer, 4, 2)};
-
-    auto request_api_version{de_serialize<uint16_t>(buffer, 6, 2)};
-
-    auto correlation_id{de_serialize<uint32_t>(buffer, 8, 4)};
-
-    std::cout << size << '\n';
-
-    std::cout << correlation_id << '\n';
-
-    auto res_size{serialize<int32_t>(4)};
-
-    auto res_data{serialize<int32_t>(correlation_id)};
-
-    auto error_code{serialize<int16_t>(0)};
-
-    std::vector<uint8_t> response;
-
-    response.insert(response.end(), res_data.begin(), res_data.end());
-
-    response.insert(response.end(), error_code.begin(), error_code.end());
-
-    ssize_t bytesSent = send(client_fd, response.data(), response.size(), 0);
-    if (bytesSent == -1) {
-      std::cerr << "Send failed!" << std::endl;
-      close(client_fd);
-      close(server_fd);
-      return 1;
-    }
-
-    std::cout << "Sent " << bytesSent << " bytes." << std::endl;
-
-    close(client_fd);
+    std::unique_ptr<Abstract_Api_Key> api_key_processor = api_key_factory(
+        de_serialize<int16_t>(buffer, 4, 6), client_fd, buff_ptr);
+    execute_key(api_key_processor.get());
   };
 
   close(server_fd);
